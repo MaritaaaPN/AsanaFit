@@ -10,10 +10,15 @@
     "test": "jest"
   },
   "dependencies": {
+    "@d11/react-native-fast-image": "^8.9.2",
     "iconsax-react-native": "^0.0.8",
     "react": "19.0.0",
     "react-native": "0.78.1",
-    "react-native-svg": "^15.11.2"
+    "react-native-calendars": "^1.1310.0",
+    "react-native-circular-progress": "^1.4.1",
+    "react-native-progress": "^5.0.1",
+    "react-native-svg": "^15.11.2",
+    "react-native-svg-circular-progress": "^1.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
