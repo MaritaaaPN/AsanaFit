@@ -3,7 +3,7 @@ const sessions = [
     { id: '2', title: 'Alur Yoga', duration: '10 MIN', image: 'https://solusiibuattack.com/uploads/post/sedang-penat-lakukan-5-gerakan-yoga-ini-yuk-smart-mom220630071518.jpg' },
     { id: '3', title: 'Jenis Yoga', duration: '11 MIN', image: 'https://res.cloudinary.com/dk0z4ums3/image/upload/v1597814122/attached_image/sering-nyeri-punggung-coba-pose-yoga-ini.jpg' },
   ];
-  
+    
   const cardData = [
     {
       category: 'RUTINITAS HARIAN',

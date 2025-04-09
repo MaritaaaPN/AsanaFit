@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     fontFamily: fontType['Pjs-Bold'],
     color: colors.green(),
     marginBottom: 16,
-  },
+  },  
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -11,7 +11,7 @@ const RecommendationCard = ({ title, duration, description, image }) => (
       <Text style={stylesTopPicks.description}>{description}</Text>
     </View>
   </View>
-); 
+);   
 
 const stylesTopPicks = StyleSheet.create({
   card: {

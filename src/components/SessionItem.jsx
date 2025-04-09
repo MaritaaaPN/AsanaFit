@@ -13,7 +13,7 @@ const SessionItem = ({ item, index }) => {
         <Text style={styles.duration}>{item.duration}</Text>
         <Text style={styles.sessionTitle}>{item.title}</Text>
       </View>
-    </View>
+    </View>  
   );
 };
 

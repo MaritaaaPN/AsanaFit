@@ -49,4 +49,4 @@ const styles = StyleSheet.create({
     fontFamily: fontType['Pjs-Medium'],
     color: colors.black(),
   },
-});
+});  

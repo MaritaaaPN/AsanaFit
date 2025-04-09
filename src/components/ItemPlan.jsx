@@ -14,7 +14,7 @@ const ItemPlan = ({ task, done, onPress }) => {
       )}
     </TouchableOpacity>
   );
-};
+};  
 
 export default ItemPlan;
 

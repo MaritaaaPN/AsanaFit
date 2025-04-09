@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
       paddingVertical: 8,
       paddingHorizontal: 16,
       borderRadius: 10,
-    },
+    },  
     shareBtn: {
       backgroundColor: colors.green(),
       paddingVertical: 8,

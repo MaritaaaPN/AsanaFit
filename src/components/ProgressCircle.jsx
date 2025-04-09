@@ -19,7 +19,7 @@ const ProgressCircle = ({ value = 65 }) => {
           <Text style={styles.percentageText}>
             {`${Math.round(fill)}%`}
           </Text>
-        )}
+        )}  
       </AnimatedCircularProgress>
       <Text style={styles.label}>Progres Mingguan</Text>
     </View>

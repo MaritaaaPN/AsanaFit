@@ -14,7 +14,7 @@ const MyPlan = () => {
       item.id === id ? { ...item, done: !item.done } : item
     );
     setTodos(updated);
-  };
+  };  
 
   return (
     <ScrollView style={styles.container}>

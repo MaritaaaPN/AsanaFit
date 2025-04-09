@@ -34,7 +34,7 @@ const Home = () => {
         <Pressable style={searchBar.button}>
           <SearchNormal size={15} color={colors.white()} />
         </Pressable>
-      </View>
+      </View>  
 
       {/* Sesi Latihan */}
       <FlatList

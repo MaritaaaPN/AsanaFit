@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View, Image, Pressable, StyleSheet } from 'react-native';
 import { colors } from '../theme';
-
+ 
 const CardItem = ({ item, onPress }) => {
   return (
     <Pressable style={styles.card} onPress={() => onPress(item.title)}>
