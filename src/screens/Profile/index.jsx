@@ -1,18 +1,36 @@
 import React from 'react';
-import {View,Text,StyleSheet,Image,TouchableOpacity,ScrollView,Alert,} from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { colors, fontType } from '../../theme';
+import { Edit } from 'iconsax-react-native';
 import { Share } from 'react-native';
-import {ProfileData} from '../../data';
+import { ProfileData } from '../../data';
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
+
+  // Fungsi untuk navigasi ke halaman AddProfileForm
   const handleEdit = () => {
-    Alert.alert('Edit Profile', 'Fitur ubah profil akan segera hadir!');
+    navigation.navigate('AddProfileForm'); // Menavigasi ke AddProfileForm
   };
 
-  const handleShare = () => {
-    Share.share({
-      message: `Lihat profil aku di AsanaFit! Nama: ${ProfileData.name}`,
-    });
+  const handleShare = async () => {
+    try {
+      const result = await Share.share({
+        message: `Yuk lihat profil aku di AsanaFit!\n\nNama: ${ProfileData.name}\nEmail: ${ProfileData.email}\nLevel: ${ProfileData.level}\nBergabung sejak: ${ProfileData.joinDate}`,
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log('Shared with activity type:', result.activityType);
+        } else {
+          console.log('Shared successfully');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Share dismissed');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
   };
 
   const handleLogout = () => {
@@ -31,8 +49,8 @@ const ProfileScreen = () => {
           <TouchableOpacity style={styles.editBtn} onPress={handleEdit}>
             <Text style={styles.btnText}>Edit Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-            <Text style={styles.btnText}>Share Profile</Text>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}> 
+            <Text style={styles.btnText}>Share Profile</Text> 
           </TouchableOpacity>
         </View>
       </View>
@@ -69,6 +87,13 @@ const ProfileScreen = () => {
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
+
+      {/* Floating button untuk Edit Profile */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={handleEdit}>
+        <Edit color={colors.white()} variant="Linear" size={20} />
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -76,114 +101,113 @@ const ProfileScreen = () => {
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.white(),
-      paddingHorizontal: 20,
-    },
-    header: {
-      alignItems: 'center',
-      marginTop: 30,
-      marginBottom: 20,
-    },
-    avatar: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
-      marginBottom: 10,
-    },
-    name: {
-      fontSize: 20,
-      fontFamily: fontType['Pjs-Bold'],
-      color: colors.black(),
-      textAlign: 'center',
-    },
-    level: {
-      fontSize: 14,
-      fontFamily: fontType['Pjs-Medium'],
-      color: colors.grey(0.8),
-      marginTop: 4,
-      textAlign: 'center',
-    },
-    joinDate: {
-      fontSize: 12,
-      fontFamily: fontType['Pjs-Regular'],
-      color: colors.grey(0.6),
-      marginTop: 2,
-      textAlign: 'center',
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: 12,
-      gap: 10,
-    },
-    editBtn: {
-      backgroundColor: colors.grey(0.9),
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderRadius: 10,
-    },  
-    shareBtn: {
-      backgroundColor: colors.green(),
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderRadius: 10,
-    },
-    btnText: {
-      color: colors.white(),
-      fontFamily: fontType['Pjs-Medium'],
-      fontSize: 14,
-    },
-    statSection: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginVertical: 20,
-      gap: 10,
-    },
-    statBox: {
-      alignItems: 'center',
-      flex: 1,
-    },
-    statNumber: {
-      fontSize: 18,
-      fontFamily: fontType['Pjs-Bold'],
-      color: colors.black(),
-    },
-    statLabel: {
-      fontSize: 12,
-      fontFamily: fontType['Pjs-Regular'],
-      color: colors.grey(0.6),
-    },
-    section: {
-      marginBottom: 20,
-    },
-    sectionTitle: {
-      fontSize: 16,
-      fontFamily: fontType['Pjs-Bold'],
-      color: colors.black(),
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    sectionContent: {
-      fontSize: 14,
-      fontFamily: fontType['Pjs-Regular'],
-      color: colors.grey(0.8),
-      marginBottom: 2,
-      textAlign: 'center',
-    },
-    logoutBtn: {
-      backgroundColor: colors.red(0.9),
-      paddingVertical: 10,
-      alignItems: 'center',
-      borderRadius: 10,
-      marginVertical: 30,
-      marginHorizontal: 20,
-    },
-    logoutText: {
-      color: colors.white(),
-      fontFamily: fontType['Pjs-Medium'],
-      fontSize: 14,
-    },
-  });
-  
+  container: {
+    flex: 1,
+    backgroundColor: colors.white(),
+    paddingHorizontal: 20,
+  },
+  header: {
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    marginBottom: 10,
+  },
+  name: {
+    fontSize: 20,
+    fontFamily: fontType['Pjs-Bold'],
+    color: colors.black(),
+    textAlign: 'center',
+  },
+  level: {
+    fontSize: 14,
+    fontFamily: fontType['Pjs-Medium'],
+    color: colors.grey(0.8),
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  joinDate: {
+    fontSize: 12,
+    fontFamily: fontType['Pjs-Regular'],
+    color: colors.grey(0.6),
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 10,
+  },
+  editBtn: {
+    backgroundColor: colors.grey(0.9),
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  shareBtn: {
+    backgroundColor: colors.green(),
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  btnText: {
+    color: colors.white(),
+    fontFamily: fontType['Pjs-Medium'],
+    fontSize: 14,
+  },
+  statSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+    gap: 10,
+  },
+  statBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontFamily: fontType['Pjs-Bold'],
+    color: colors.black(),
+  },
+  statLabel: {
+    fontSize: 12,
+    fontFamily: fontType['Pjs-Regular'],
+    color: colors.grey(0.6),
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: fontType['Pjs-Bold'],
+    color: colors.black(),
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  sectionContent: {
+    fontSize: 14,
+    fontFamily: fontType['Pjs-Regular'],
+    color: colors.grey(0.8),
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  logoutBtn: {
+    backgroundColor: colors.red(0.9),
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+    marginVertical: 30,
+    marginHorizontal: 20,
+  },
+  logoutText: {
+    color: colors.white(),
+    fontFamily: fontType['Pjs-Medium'],
+    fontSize: 14,
+  },
+});

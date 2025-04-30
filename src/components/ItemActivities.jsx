@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, fontType } from '../theme';
+import {useNavigation} from '@react-navigation/native';
 
 const ItemActivities = ({ item, onPress }) => {
+  const navigation = useNavigation();
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ActivitiesDetail', {activitiesId: item.id})}>
       <Image source={{ uri: item.image }} style={styles.image} />
       <View style={styles.content}>
         <Text style={styles.title}>{item.title}</Text>

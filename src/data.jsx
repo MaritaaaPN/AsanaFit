@@ -90,6 +90,7 @@ const sessions = [
   const ProfileData = {
     profilePict: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfE0BIdm0d8Htavsb0uVX5OMluG2luWfH_iA&s',
     name: 'Marita Putri Nabila',
+    email: 'Marita.nabila@email.com',
     joinDate: '18 Mar, 2020',
     level: 'Intermediate',
     totalSessions: 124,
