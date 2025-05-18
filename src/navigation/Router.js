@@ -1,7 +1,7 @@
 import React from 'react';
 import {createStackNavigator, TransitionPresets} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {Home, Activities, ActivitiesDetail, MyPlan, Profile, AddProfileForm} from '../screens';
+import {Home, Activities, ActivitiesDetail, MyPlan, Profile, AddProfileForm, EditProfileForm, DeleteProfileForm} from '../screens';
 import {Element3 , Activity, TaskSquare, UserSquare} from 'iconsax-react-native'; 
 import { fontType, colors } from '../theme';
 
@@ -114,6 +114,32 @@ const Router = () => {
   options={{
     headerShown: true,  // Mengaktifkan header jika ingin menampilkannya
     title: 'Edit Profile',
+    animationEnabled: true,
+    animationTypeForReplace: 'pop',
+    gestureEnabled: true,
+    gestureDirection: 'horizontal',
+    ...TransitionPresets.SlideFromRightIOS,
+  }}
+/>
+<Stack.Screen
+  name="EditProfileForm"
+  component={EditProfileForm}
+  options={{
+    headerShown: true,
+    title: 'Edit Profile',
+    animationEnabled: true,
+    animationTypeForReplace: 'pop',
+    gestureEnabled: true,
+    gestureDirection: 'horizontal',
+    ...TransitionPresets.SlideFromRightIOS,
+  }}
+/>
+<Stack.Screen
+  name="DeleteProfileForm"
+  component={DeleteProfileForm}
+  options={{
+    headerShown: true,
+    title: 'Delete Profile',
     animationEnabled: true,
     animationTypeForReplace: 'pop',
     gestureEnabled: true,

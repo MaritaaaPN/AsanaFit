@@ -1,163 +1,156 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {View, Text, TextInput, StyleSheet, TouchableOpacity,Alert, Image, ScrollView, ActivityIndicator} from 'react-native';
 import { colors, fontType } from '../../theme';
-import { ProfileData } from '../../data';  // Memuat data profil awal
-import { Edit, Camera, Gallery } from 'iconsax-react-native';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';  // Import image picker
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import axios from 'axios';
 
-const AddProfileForm = ({ navigation }) => {
-  const [name, setName] = useState(ProfileData.name);
-  const [joinDate, setJoinDate] = useState(ProfileData.joinDate);
-  const [level, setLevel] = useState(ProfileData.level);
-  const [totalSessions, setTotalSessions] = useState(ProfileData.totalSessions.toString());
-  const [activeStreak, setActiveStreak] = useState(ProfileData.activeStreak.toString());
-  const [caloriesBurned, setCaloriesBurned] = useState(ProfileData.caloriesBurned.toString());
-  const [goals, setGoals] = useState(ProfileData.goals.join(', '));  // Goals diubah menjadi string
-  const [badges, setBadges] = useState(ProfileData.badges.join(', '));  // Badges diubah menjadi string
-  const [profilePict, setProfilePict] = useState(ProfileData.profilePict);  // Untuk menyimpan foto profil
-  const [email, setEmail] = useState(ProfileData.email);  // Alamat email
+const API_URL = 'https://6823403e65ba05803395f61e.mockapi.io/api/blog';
 
-  // Fungsi untuk memilih gambar dari galeri
+const AddProfileForm = ({ navigation, route }) => {
+  const profile = route.params?.profile || null;
+
+  const [name, setName] = useState('');
+  const [joinDate, setJoinDate] = useState('');
+  const [level, setLevel] = useState('');
+  const [totalSessions, setTotalSessions] = useState('');
+  const [activeStreak, setActiveStreak] = useState('');
+  const [caloriesBurned, setCaloriesBurned] = useState('');
+  const [goals, setGoals] = useState('');
+  const [badges, setBadges] = useState('');
+  const [profilePict, setProfilePict] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Prefill form saat edit
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || '');
+      setJoinDate(profile.joinDate || '');
+      setLevel(profile.level || '');
+      setTotalSessions(profile.totalSessions?.toString() || '');
+      setActiveStreak(profile.activeStreak?.toString() || '');
+      setCaloriesBurned(profile.caloriesBurned?.toString() || '');
+      setGoals(profile.goals?.join(', ') || '');
+      setBadges(profile.badges?.join(', ') || '');
+      setProfilePict(profile.profilePict || '');
+      setEmail(profile.email || '');
+    }
+  }, [profile]);
+
   const selectImage = () => {
-    launchImageLibrary(
-      { mediaType: 'photo', quality: 0.5 },
-      response => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else {
-          setProfilePict(response.assets[0].uri);  // Update URL gambar
-        }
+    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
+      if (!response.didCancel && !response.errorCode) {
+        setProfilePict(response.assets[0].uri);
       }
-    );
+    });
   };
 
-  // Fungsi untuk mengambil gambar dengan kamera
   const takePhoto = () => {
-    launchCamera(
-      { mediaType: 'photo', quality: 0.5 },
-      response => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else {
-          setProfilePict(response.assets[0].uri);  // Update URL gambar
-        }
+    launchCamera({ mediaType: 'photo', quality: 0.5 }, response => {
+      if (!response.didCancel && !response.errorCode) {
+        setProfilePict(response.assets[0].uri);
       }
-    );
+    });
   };
 
-  const handleSave = () => {
-    // Menyimpan data profil yang telah diubah
-    const updatedProfile = {
-      profilePict,  // Gambar profil yang sudah diubah
+  const handleSave = async () => {
+    if (!name || !email) {
+      Alert.alert('Error', 'Nama dan email wajib diisi.');
+      return;
+    }
+
+    const newProfile = {
+      profilePict,
       name,
-      email,  // Menambahkan email
+      email,
       joinDate,
       level,
-      totalSessions: parseInt(totalSessions),
-      activeStreak: parseInt(activeStreak),
-      caloriesBurned: parseInt(caloriesBurned),
-      goals: goals.split(',').map(goal => goal.trim()),  // Mengubah kembali ke array
-      badges: badges.split(',').map(badge => badge.trim()),  // Mengubah kembali ke array
+      totalSessions: parseInt(totalSessions) || 0,
+      activeStreak: parseInt(activeStreak) || 0,
+      caloriesBurned: parseInt(caloriesBurned) || 0,
+      goals: goals.split(',').map(item => item.trim()),
+      badges: badges.split(',').map(item => item.trim())
     };
 
-    // Tampilkan alert atau simpan ke penyimpanan lokal/API
-    Alert.alert('Profile Updated', 'Profil kamu berhasil diperbarui!');
-    navigation.goBack();  // Kembali ke halaman sebelumnya setelah menyimpan
+    try {
+      setLoading(true);
+
+      if (profile) {
+        // Mode edit: PUT
+        await axios.put(`${API_URL}/${profile.id}`, newProfile);
+        Alert.alert('Berhasil', 'Profil berhasil diperbarui!');
+      } else {
+        // Mode tambah: POST
+        await axios.post(API_URL, newProfile);
+        Alert.alert('Berhasil', 'Profil berhasil ditambahkan!');
+      }
+
+      setLoading(false);
+      navigation.goBack();
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan data.');
+      console.error(error);
+    }
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Edit Profile</Text>
+        <Text style={styles.title}>
+          {profile ? 'Edit Profil' : 'Tambah Profil'}
+        </Text>
       </View>
 
       <TouchableOpacity style={styles.profilePicContainer} onPress={selectImage}>
-        <Image source={{ uri: profilePict }} style={styles.profilePic} />
-        <Text style={styles.changePhotoText}>Change Photo</Text>
+        {profilePict ? (
+          <Image source={{ uri: profilePict }} style={styles.profilePic} />
+        ) : (
+          <View style={[styles.profilePic, {
+            backgroundColor: colors.grey(0.2),
+            justifyContent: 'center',
+            alignItems: 'center'
+          }]}>
+            <Text style={{ color: colors.grey(), fontSize: 12 }}>Pilih Foto</Text>
+          </View>
+        )}
+        <Text style={styles.changePhotoText}>Ubah Foto</Text>
       </TouchableOpacity>
 
-      <Text style={styles.label}>Nama Lengkap:</Text>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="Nama Lengkap"
-      />
+      {/* INPUT FIELD */}
+      <Text style={styles.label}>Nama Lengkap</Text>
+      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nama" />
 
-      <Text style={styles.label}>Email:</Text>
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        keyboardType="email-address"
-      />
+      <Text style={styles.label}>Email</Text>
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" />
 
-      <Text style={styles.label}>Tanggal Bergabung:</Text>
-      <TextInput
-        style={styles.input}
-        value={joinDate}
-        onChangeText={setJoinDate}
-        placeholder="Tanggal Bergabung"
-      />
+      <Text style={styles.label}>Tanggal Bergabung</Text>
+      <TextInput style={styles.input} value={joinDate} onChangeText={setJoinDate} placeholder="YYYY-MM-DD" />
 
-      <Text style={styles.label}>Level (Beginner/Intermediate/Advanced):</Text>
-      <TextInput
-        style={styles.input}
-        value={level}
-        onChangeText={setLevel}
-        placeholder="Level"
-      />
+      <Text style={styles.label}>Level</Text>
+      <TextInput style={styles.input} value={level} onChangeText={setLevel} placeholder="Beginner / Intermediate / Advanced" />
 
-      <Text style={styles.label}>Total Sesi:</Text>
-      <TextInput
-        style={styles.input}
-        value={totalSessions}
-        onChangeText={setTotalSessions}
-        placeholder="Total Sesi"
-        keyboardType="numeric"
-      />
+      <Text style={styles.label}>Total Sesi</Text>
+      <TextInput style={styles.input} value={totalSessions} onChangeText={setTotalSessions} keyboardType="numeric" />
 
-      <Text style={styles.label}>Active Streak:</Text>
-      <TextInput
-        style={styles.input}
-        value={activeStreak}
-        onChangeText={setActiveStreak}
-        placeholder="Active Streak"
-        keyboardType="numeric"
-      />
+      <Text style={styles.label}>Active Streak</Text>
+      <TextInput style={styles.input} value={activeStreak} onChangeText={setActiveStreak} keyboardType="numeric" />
 
-      <Text style={styles.label}>Kalori Terbakar:</Text>
-      <TextInput
-        style={styles.input}
-        value={caloriesBurned}
-        onChangeText={setCaloriesBurned}
-        placeholder="Kalori Terbakar"
-        keyboardType="numeric"
-      />
+      <Text style={styles.label}>Kalori Terbakar</Text>
+      <TextInput style={styles.input} value={caloriesBurned} onChangeText={setCaloriesBurned} keyboardType="numeric" />
 
-      <Text style={styles.label}>Goals (pisahkan dengan koma):</Text>
-      <TextInput
-        style={styles.input}
-        value={goals}
-        onChangeText={setGoals}
-        placeholder="Goals"
-      />
+      <Text style={styles.label}>Goals (pisahkan dengan koma)</Text>
+      <TextInput style={styles.input} value={goals} onChangeText={setGoals} placeholder="Contoh: Fitness, Diet" />
 
-      <Text style={styles.label}>Badges (pisahkan dengan koma):</Text>
-      <TextInput
-        style={styles.input}
-        value={badges}
-        onChangeText={setBadges}
-        placeholder="Badges"
-      />
+      <Text style={styles.label}>Badges (pisahkan dengan koma)</Text>
+      <TextInput style={styles.input} value={badges} onChangeText={setBadges} placeholder="Contoh: Top Learner, 30 Days" />
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveText}>Save</Text>
+      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color={colors.white()} />
+        ) : (
+          <Text style={styles.saveText}>{profile ? 'Perbarui' : 'Simpan'}</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -165,62 +158,38 @@ const AddProfileForm = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.white(),
-    padding: 20,
+    flex: 1, backgroundColor: colors.white(), padding: 20,
   },
   header: {
-    marginBottom: 20,
-    alignItems: 'center',
+    marginBottom: 20, alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontFamily: fontType['Pjs-Bold'],
-    color: colors.black(),
+    fontSize: 24, fontFamily: fontType['Pjs-Bold'], color: colors.black(),
   },
   profilePicContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+    alignItems: 'center', marginBottom: 20,
   },
   profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
+    width: 100, height: 100, borderRadius: 50, marginBottom: 10,
   },
   changePhotoText: {
-    fontSize: 14,
-    color: colors.green(),
-    fontFamily: fontType['Pjs-Medium'],
+    fontSize: 14, color: colors.green(), fontFamily: fontType['Pjs-Medium'],
   },
   label: {
-    fontSize: 14,
-    fontFamily: fontType['Pjs-Regular'],
-    color: colors.black(),
-    marginBottom: 5,
+    fontSize: 14, fontFamily: fontType['Pjs-Regular'], color: colors.black(), marginBottom: 5,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.grey(0.6),
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    marginBottom: 15,
-    fontFamily: fontType['Pjs-Regular'],
+    borderWidth: 1, borderColor: colors.grey(0.6), borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 16, marginBottom: 15, fontFamily: fontType['Pjs-Regular'],
     color: colors.black(),
   },
   saveBtn: {
-    backgroundColor: colors.green(),
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-    marginTop: 20,
+    backgroundColor: colors.green(), paddingVertical: 12,
+    alignItems: 'center', borderRadius: 8, marginTop: 20,
   },
   saveText: {
-    color: colors.white(),
-    fontSize: 16,
-    fontFamily: fontType['Pjs-Bold'],
+    color: colors.white(), fontSize: 16, fontFamily: fontType['Pjs-Bold'],
   },
 });
 

@@ -1,33 +1,80 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {View,Text,StyleSheet,Image,TouchableOpacity,ScrollView,Alert,ActivityIndicator,Share} from 'react-native';
 import { colors, fontType } from '../../theme';
-import { Edit } from 'iconsax-react-native';
-import { Share } from 'react-native';
-import { ProfileData } from '../../data';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+
+const API_URL = 'https://6823403e65ba05803395f61e.mockapi.io/api/blog';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fungsi untuk navigasi ke halaman AddProfileForm
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await axios.get(API_URL);
+
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setProfile(res.data[0]);
+      } else {
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setError(error.message);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', fetchProfile);
+    fetchProfile();
+    return unsubscribe;
+  }, [navigation]);
+
   const handleEdit = () => {
-    navigation.navigate('AddProfileForm'); // Menavigasi ke AddProfileForm
+    navigation.navigate('AddProfileForm', { profile });
+  };
+
+  const handleDelete = async () => {
+    if (!profile?.id) {
+      Alert.alert('Error', 'Tidak dapat menemukan ID profil');
+      return;
+    }
+
+    Alert.alert(
+      'Konfirmasi',
+      'Apakah kamu yakin ingin menghapus profil?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.delete(`${API_URL}/${profile.id}`);
+              setProfile(null);
+              Alert.alert('Berhasil', 'Profil telah dihapus.');
+            } catch (error) {
+              Alert.alert('Gagal Menghapus Profil', error.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleShare = async () => {
     try {
-      const result = await Share.share({
-        message: `Yuk lihat profil aku di AsanaFit!\n\nNama: ${ProfileData.name}\nEmail: ${ProfileData.email}\nLevel: ${ProfileData.level}\nBergabung sejak: ${ProfileData.joinDate}`,
+      await Share.share({
+        message: `Yuk lihat profil aku di AsanaFit!\n\nNama: ${profile?.name}\nEmail: ${profile?.email}\nLevel: ${profile?.level}\nBergabung sejak: ${profile?.joinDate}`,
       });
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log('Shared with activity type:', result.activityType);
-        } else {
-          console.log('Shared successfully');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log('Share dismissed');
-      }
     } catch (error) {
       Alert.alert('Error', error.message);
     }
@@ -37,74 +84,161 @@ const ProfileScreen = () => {
     Alert.alert('Logout', 'Kamu berhasil keluar dari akun AsanaFit.');
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.green()} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Gagal memuat profil: {error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchProfile}>
+          <Text style={styles.btnText}>Coba Lagi</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.headerTitle}>MY PROFILE</Text>
+        <Image
+          source={require('../../assets/images/profile.jpg')}
+          style={{ width: 300, height: 350, alignSelf: 'center', marginBottom: 10 }}
+        />
+        <Text style={{ textAlign: 'center', marginBottom: 20, color: colors.grey(0.7) }}>
+          Kamu belum menambahkan profilmu. Yuk mulai sekarang!
+        </Text>
+        <TouchableOpacity style={styles.addBtn} onPress={handleEdit}>
+          <Text style={styles.btnText}>TAMBAH PROFIL</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.motivationBox}>
+        <Text style={styles.motivationText}>Tetap Semangat, {profile?.name?.split(' ')[0] || 'Pejuang Sehat'}!</Text>
+        <Text style={styles.motivationSubText}>Konsistensi adalah kunci untuk mencapai tujuanmu!</Text>
+      </View>
+
       <View style={styles.header}>
-        <Image source={{ uri: ProfileData.profilePict }} style={styles.avatar} />
-        <Text style={styles.name}>{ProfileData.name}</Text>
-        <Text style={styles.level}>{ProfileData.level}</Text>
-        <Text style={styles.joinDate}>Bergabung sejak {ProfileData.joinDate}</Text>
+        <Image
+          source={profile.profilePict ? { uri: profile.profilePict } : require('../../assets/images/profile.jpg')}
+          style={styles.avatar}
+        />
+        <Text style={styles.name}>{profile.name}</Text>
+        <Text style={styles.level}>{profile.level}</Text>
+        <Text style={styles.joinDate}>Bergabung sejak {profile.joinDate}</Text>
 
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.editBtn} onPress={handleEdit}>
             <Text style={styles.btnText}>Edit Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}> 
-            <Text style={styles.btnText}>Share Profile</Text> 
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+            <Text style={styles.btnText}>Share Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.btnText}>Hapus Profile</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.statSection}>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{ProfileData.totalSessions}</Text>
+          <Text style={styles.statNumber}>{profile.totalSessions}</Text>
           <Text style={styles.statLabel}>Sesi</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{ProfileData.activeStreak}</Text>
+          <Text style={styles.statNumber}>{profile.activeStreak}</Text>
           <Text style={styles.statLabel}>Streak</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{ProfileData.caloriesBurned}</Text>
+          <Text style={styles.statNumber}>{profile.caloriesBurned}</Text>
           <Text style={styles.statLabel}>Kalori</Text>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Goals</Text>
-        {ProfileData.goals.map((goal, index) => (
-          <Text key={index} style={styles.sectionContent}>• {goal}</Text>
-        ))}
+        {Array.isArray(profile.goals) && profile.goals.length > 0 ? (
+          profile.goals.map((goal, index) => (
+            <Text key={index} style={styles.sectionContent}>• {goal}</Text>
+          ))
+        ) : (
+          <Text style={styles.sectionContent}>Belum ada goals</Text>
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Rewards</Text>
-        {ProfileData.badges.map((badge, index) => (
-          <Text key={index} style={styles.sectionContent}>🏅 {badge}</Text>
-        ))}
+        {Array.isArray(profile.badges) && profile.badges.length > 0 ? (
+          profile.badges.map((badge, index) => (
+            <Text key={index} style={styles.sectionContent}>🏅 {badge}</Text>
+          ))
+        ) : (
+          <Text style={styles.sectionContent}>Belum ada badges</Text>
+        )}
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
-
-      {/* Floating button untuk Edit Profile */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={handleEdit}>
-        <Edit color={colors.white()} variant="Linear" size={20} />
-      </TouchableOpacity>
     </ScrollView>
   );
 };
-
-export default ProfileScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white(),
     paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 40,
+    color: colors.red(),
+    fontFamily: fontType['Pjs-Medium'],
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: fontType['Pjs-Bold'],
+    color: colors.black(),
+    textAlign: 'center',
+    marginTop: 80,
+    marginBottom: 20,
+  },
+  addBtn: {
+    backgroundColor: colors.green(),
+    paddingVertical: 20,
+    paddingHorizontal: 50,
+    borderRadius: 10,
+    alignSelf: 'center',
+  },
+  retryBtn: {
+    backgroundColor: colors.blue(),
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    margin: 4,
+    alignSelf: 'center',
+  },
+  btnText: {
+    color: colors.white(),
+    fontFamily: fontType['Pjs-Bold'],
+    fontSize: 14,
   },
   header: {
     alignItems: 'center',
@@ -116,6 +250,7 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 45,
     marginBottom: 10,
+    backgroundColor: colors.grey(0.2),
   },
   name: {
     fontSize: 20,
@@ -142,23 +277,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 12,
     gap: 10,
+    flexWrap: 'wrap',
   },
   editBtn: {
     backgroundColor: colors.grey(0.9),
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 10,
+    margin: 4,
   },
   shareBtn: {
     backgroundColor: colors.green(),
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 10,
+    margin: 4,
   },
-  btnText: {
-    color: colors.white(),
-    fontFamily: fontType['Pjs-Medium'],
-    fontSize: 14,
+  deleteBtn: {
+    backgroundColor: colors.red(0.8),
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    margin: 4,
   },
   statSection: {
     flexDirection: 'row',
@@ -210,4 +350,28 @@ const styles = StyleSheet.create({
     fontFamily: fontType['Pjs-Medium'],
     fontSize: 14,
   },
+  motivationBox: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.grey(0.1),
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  motivationText: {
+    fontSize: 16,
+    fontFamily: fontType['Pjs-Bold'],
+    color: colors.black(),
+    textAlign: 'center',
+  },
+  motivationSubText: {
+    fontSize: 12,
+    fontFamily: fontType['Pjs-Regular'],
+    color: colors.grey(0.6),
+    marginTop: 4,
+    textAlign: 'center',
+  },
 });
+
+export default ProfileScreen;
