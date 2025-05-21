@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import axios from 'axios';
+import { deleteDoc, doc, getFirestore } from '@react-native-firebase/firestore';
 import { colors, fontType } from '../../theme';
 
 const DeleteProfileForm = ({ navigation, route }) => {
-  const { id } = route.params; // Dapatkan ID dari route
+  const { id } = route.params;
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`https://6823403e65ba05803395f61e.mockapi.io/api/blog/${id}`);
-      Alert.alert('Berhasil', 'Profil berhasil dihapus.');
+      const db = getFirestore();
+      const docRef = doc(db, 'profiles', id);
+      await deleteDoc(docRef);
+
+      Alert.alert('Berhasil', 'Profil berhasil dihapus dari Firestore.');
       navigation.goBack();
     } catch (error) {
       console.error(error);

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 import { colors, fontType } from '../../theme';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import axios from 'axios';
+import { getFirestore, onSnapshot, updateDoc, doc } from '@react-native-firebase/firestore';
+
 
 const EditProfileForm = ({ navigation, route }) => {
   const { profileData } = route.params;
@@ -34,57 +35,59 @@ const EditProfileForm = ({ navigation, route }) => {
   }, [profileData]);
 
   const selectImage = () => {
-    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
-      if (response.assets) {
-        setProfilePict(response.assets[0]);
-      }
-    });
-  };
+  launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
+    if (response.assets && response.assets.length > 0) {
+      const selectedImage = response.assets[0];
+      setProfilePict(selectedImage.uri);
+    }
+  });
+};
+
 
   const handleUpdate = async () => {
-    const formData = new FormData();
+  if (!profileData?.id) {
+    Alert.alert('Error', 'Data profil tidak ditemukan.');
+    return;
+  }
 
-    if (profilePict && profilePict.uri) {
-      formData.append('profilePict', {
-        uri: profilePict.uri,
-        type: profilePict.type || 'image/jpeg',
-        name: profilePict.fileName || 'profile.jpg',
-      });
-    }
-
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('joinDate', joinDate);
-    formData.append('level', level);
-    formData.append('totalSessions', totalSessions);
-    formData.append('activeStreak', activeStreak);
-    formData.append('caloriesBurned', caloriesBurned);
-    formData.append('goals', goals);
-    formData.append('badges', badges);
-
-    try {
-      await axios.put(`https://6823403e65ba05803395f61e.mockapi.io/api/blog/${profileData.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      Alert.alert('Sukses', 'Profil berhasil diperbarui!');
-      navigation.goBack();
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Gagal memperbarui profil.');
-    }
+  const updatedProfile = {
+    profilePict: profilePict || '',
+    name,
+    email,
+    joinDate,
+    level,
+    totalSessions: parseInt(totalSessions) || 0,
+    activeStreak: parseInt(activeStreak) || 0,
+    caloriesBurned: parseInt(caloriesBurned) || 0,
+    goals: goals.split(',').map(goal => goal.trim()),
+    badges: badges.split(',').map(badge => badge.trim()),
   };
+
+  try {
+    const db = getFirestore();
+    const docRef = doc(db, 'profiles', profileData.id);
+    await updateDoc(docRef, updatedProfile);
+    Alert.alert('Sukses', 'Profil berhasil diperbarui di Firestore!');
+    navigation.goBack();
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Error', 'Gagal memperbarui profil.');
+  }
+};
+
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Edit Profil</Text>
 
       <TouchableOpacity style={styles.imagePicker} onPress={selectImage}>
-        {profilePict ? (
-          <Image source={{ uri: profilePict.uri }} style={styles.image} />
-        ) : (
-          <Text style={styles.imagePlaceholder}>Pilih Foto Profil</Text>
-        )}
-      </TouchableOpacity>
+  {profilePict ? (
+    <Image source={{ uri: profilePict }} style={styles.image} />
+  ) : (
+    <Text style={styles.imagePlaceholder}>Pilih Foto Profil</Text>
+  )}
+</TouchableOpacity>
+
 
       <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nama Lengkap" />
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" />

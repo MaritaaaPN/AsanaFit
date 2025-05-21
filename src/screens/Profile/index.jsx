@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {View,Text,StyleSheet,Image,TouchableOpacity,ScrollView,Alert,ActivityIndicator,Share} from 'react-native';
 import { colors, fontType } from '../../theme';
 import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
-
-const API_URL = 'https://6823403e65ba05803395f61e.mockapi.io/api/blog';
+import { getFirestore, collection, onSnapshot, doc, deleteDoc } from '@react-native-firebase/firestore';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -12,29 +10,29 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await axios.get(API_URL);
-
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        setProfile(res.data[0]);
-      } else {
-        setProfile(null);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setError(error.message);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const db = getFirestore();
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchProfile);
-    fetchProfile();
+    const unsubscribe = navigation.addListener('focus', () => {
+      setLoading(true);
+      const unsubscribeSnapshot = onSnapshot(
+        collection(db, 'profiles'),
+        (snapshot) => {
+          const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          setProfile(data.length > 0 ? data[0] : null);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching profile:', err);
+          setError(err.message);
+          setProfile(null);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribeSnapshot(); // Stop listening on unmount
+    });
+
     return unsubscribe;
   }, [navigation]);
 
@@ -58,7 +56,7 @@ const ProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/${profile.id}`);
+              await deleteDoc(doc(db, 'profiles', profile.id));
               setProfile(null);
               Alert.alert('Berhasil', 'Profil telah dihapus.');
             } catch (error) {
@@ -84,6 +82,7 @@ const ProfileScreen = () => {
     Alert.alert('Logout', 'Kamu berhasil keluar dari akun AsanaFit.');
   };
 
+  // RENDERING
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -96,7 +95,7 @@ const ProfileScreen = () => {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Gagal memuat profil: {error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={fetchProfile}>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(null); setLoading(true); }}>
           <Text style={styles.btnText}>Coba Lagi</Text>
         </TouchableOpacity>
       </View>

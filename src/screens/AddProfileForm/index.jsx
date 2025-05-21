@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {View, Text, TextInput, StyleSheet, TouchableOpacity,Alert, Image, ScrollView, ActivityIndicator} from 'react-native';
 import { colors, fontType } from '../../theme';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import axios from 'axios';
-
-const API_URL = 'https://6823403e65ba05803395f61e.mockapi.io/api/blog';
+import ImagePicker from 'react-native-image-crop-picker';
+import { addDoc, updateDoc, collection, getFirestore, doc } from '@react-native-firebase/firestore';
 
 const AddProfileForm = ({ navigation, route }) => {
   const profile = route.params?.profile || null;
@@ -38,12 +37,13 @@ const AddProfileForm = ({ navigation, route }) => {
   }, [profile]);
 
   const selectImage = () => {
-    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
-      if (!response.didCancel && !response.errorCode) {
-        setProfilePict(response.assets[0].uri);
-      }
-    });
-  };
+  launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
+    if (!response.didCancel && !response.errorCode && response.assets && response.assets.length > 0) {
+      const uri = response.assets[0].uri;
+      setProfilePict(uri);
+    }
+  });
+};
 
   const takePhoto = () => {
     launchCamera({ mediaType: 'photo', quality: 0.5 }, response => {
@@ -54,45 +54,49 @@ const AddProfileForm = ({ navigation, route }) => {
   };
 
   const handleSave = async () => {
-    if (!name || !email) {
-      Alert.alert('Error', 'Nama dan email wajib diisi.');
-      return;
-    }
+  if (!name || !email) {
+    Alert.alert('Error', 'Nama dan email wajib diisi.');
+    return;
+  }
 
-    const newProfile = {
-      profilePict,
-      name,
-      email,
-      joinDate,
-      level,
-      totalSessions: parseInt(totalSessions) || 0,
-      activeStreak: parseInt(activeStreak) || 0,
-      caloriesBurned: parseInt(caloriesBurned) || 0,
-      goals: goals.split(',').map(item => item.trim()),
-      badges: badges.split(',').map(item => item.trim())
-    };
-
-    try {
-      setLoading(true);
-
-      if (profile) {
-        // Mode edit: PUT
-        await axios.put(`${API_URL}/${profile.id}`, newProfile);
-        Alert.alert('Berhasil', 'Profil berhasil diperbarui!');
-      } else {
-        // Mode tambah: POST
-        await axios.post(API_URL, newProfile);
-        Alert.alert('Berhasil', 'Profil berhasil ditambahkan!');
-      }
-
-      setLoading(false);
-      navigation.goBack();
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan data.');
-      console.error(error);
-    }
+  const newProfile = {
+    profilePict,
+    name,
+    email,
+    joinDate,
+    level,
+    totalSessions: parseInt(totalSessions) || 0,
+    activeStreak: parseInt(activeStreak) || 0,
+    caloriesBurned: parseInt(caloriesBurned) || 0,
+    goals: goals.split(',').map(item => item.trim()),
+    badges: badges.split(',').map(item => item.trim())
   };
+
+  try {
+    setLoading(true);
+    const db = getFirestore();
+
+    if (profile && profile.id) {
+      // 🔁 Edit mode: update document by ID
+      const profileRef = doc(db, 'profiles', profile.id);
+      await updateDoc(profileRef, newProfile);
+      Alert.alert('Berhasil', 'Profil berhasil diperbarui!');
+    } else {
+      // ➕ Tambah mode: tambah data baru
+      await addDoc(collection(db, 'profiles'), newProfile);
+      Alert.alert('Berhasil', 'Profil berhasil ditambahkan!');
+    }
+
+    setLoading(false);
+    navigation.goBack();
+  } catch (error) {
+    setLoading(false);
+    Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan.');
+    console.error(error);
+  }
+};
+
+
 
   return (
     <ScrollView style={styles.container}>
