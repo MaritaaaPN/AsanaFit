@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, TextInput, StyleSheet, TouchableOpacity,Alert, Image, ScrollView, ActivityIndicator} from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
 import { colors, fontType } from '../../theme';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import ImagePicker from 'react-native-image-crop-picker';
 import { addDoc, updateDoc, collection, getFirestore, doc } from '@react-native-firebase/firestore';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 const AddProfileForm = ({ navigation, route }) => {
   const profile = route.params?.profile || null;
@@ -20,7 +20,7 @@ const AddProfileForm = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Prefill form saat edit
+  // Prefill data saat edit
   useEffect(() => {
     if (profile) {
       setName(profile.name || '');
@@ -37,73 +37,97 @@ const AddProfileForm = ({ navigation, route }) => {
   }, [profile]);
 
   const selectImage = () => {
-  launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
-    if (!response.didCancel && !response.errorCode && response.assets && response.assets.length > 0) {
-      const uri = response.assets[0].uri;
-      setProfilePict(uri);
-    }
-  });
-};
+    launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, response => {
+      if (!response.didCancel && !response.errorCode && response.assets && response.assets.length > 0) {
+        const uri = response.assets[0].uri;
+        setProfilePict(uri);
+      }
+    });
+  };
 
   const takePhoto = () => {
     launchCamera({ mediaType: 'photo', quality: 0.5 }, response => {
-      if (!response.didCancel && !response.errorCode) {
+      if (!response.didCancel && !response.errorCode && response.assets && response.assets.length > 0) {
         setProfilePict(response.assets[0].uri);
       }
     });
   };
 
-  const handleSave = async () => {
-  if (!name || !email) {
-    Alert.alert('Error', 'Nama dan email wajib diisi.');
-    return;
-  }
-
-  const newProfile = {
-    profilePict,
-    name,
-    email,
-    joinDate,
-    level,
-    totalSessions: parseInt(totalSessions) || 0,
-    activeStreak: parseInt(activeStreak) || 0,
-    caloriesBurned: parseInt(caloriesBurned) || 0,
-    goals: goals.split(',').map(item => item.trim()),
-    badges: badges.split(',').map(item => item.trim())
+  const requestNotificationPermission = async () => {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
   };
 
-  try {
-    setLoading(true);
-    const db = getFirestore();
+  const onDisplayNotification = async () => {
+    const permissionGranted = await requestNotificationPermission();
+    if (!permissionGranted) return;
 
-    if (profile && profile.id) {
-      // 🔁 Edit mode: update document by ID
-      const profileRef = doc(db, 'profiles', profile.id);
-      await updateDoc(profileRef, newProfile);
-      Alert.alert('Berhasil', 'Profil berhasil diperbarui!');
-    } else {
-      // ➕ Tambah mode: tambah data baru
-      await addDoc(collection(db, 'profiles'), newProfile);
-      Alert.alert('Berhasil', 'Profil berhasil ditambahkan!');
+    const channelId = await notifee.createChannel({
+      id: 'default',
+      name: 'Default Channel',
+      importance: AndroidImportance.HIGH,
+    });
+
+    await notifee.displayNotification({
+      title: 'Sukses!',
+      body: profile ? 'Profil berhasil diperbarui.' : 'Profil berhasil ditambahkan.',
+      android: {
+        channelId,
+        smallIcon: 'ic_launcher', // pastikan ikon ini ada di drawable
+      },
+    });
+  };
+
+  const handleSave = async () => {
+    if (!name || !email) {
+      Alert.alert('Error', 'Nama dan email wajib diisi.');
+      return;
     }
 
-    setLoading(false);
-    navigation.goBack();
-  } catch (error) {
-    setLoading(false);
-    Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan.');
-    console.error(error);
-  }
-};
+    const newProfile = {
+      profilePict,
+      name,
+      email,
+      joinDate,
+      level,
+      totalSessions: parseInt(totalSessions) || 0,
+      activeStreak: parseInt(activeStreak) || 0,
+      caloriesBurned: parseInt(caloriesBurned) || 0,
+      goals: goals.split(',').map(item => item.trim()),
+      badges: badges.split(',').map(item => item.trim()),
+    };
 
+    try {
+      setLoading(true);
+      const db = getFirestore();
 
+      if (profile && profile.id) {
+        const profileRef = doc(db, 'profiles', profile.id);
+        await updateDoc(profileRef, newProfile);
+        await onDisplayNotification();
+        Alert.alert('Berhasil', 'Profil berhasil diperbarui!');
+      } else {
+        await addDoc(collection(db, 'profiles'), newProfile);
+        await onDisplayNotification();
+        Alert.alert('Berhasil', 'Profil berhasil ditambahkan!');
+      }
+
+      setLoading(false);
+      navigation.goBack();
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan.');
+      console.error(error);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          {profile ? 'Edit Profil' : 'Tambah Profil'}
-        </Text>
+        <Text style={styles.title}>{profile ? 'Edit Profil' : 'Tambah Profil'}</Text>
       </View>
 
       <TouchableOpacity style={styles.profilePicContainer} onPress={selectImage}>
@@ -121,7 +145,6 @@ const AddProfileForm = ({ navigation, route }) => {
         <Text style={styles.changePhotoText}>Ubah Foto</Text>
       </TouchableOpacity>
 
-      {/* INPUT FIELD */}
       <Text style={styles.label}>Nama Lengkap</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nama" />
 
